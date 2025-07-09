@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>電影台詞管理系統</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .message {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+  </style>
+</head>
+<body>
+  <h1>電影台詞管理系統</h1>
+
+  <!-- 新增台詞表單 -->
+  <h2>新增電影台詞</h2>
+  <form id="quoteForm">
+    <div class="form-group">
+      <label for="provider">台詞提供者:</label>
+      <input type="text" id="provider" name="provider" required>
+    </div>
+
+    <div class="form-group">
+      <label for="movie_name">電影名稱:</label>
+      <input type="text" id="movie_name" name="movie_name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="quote">電影台詞:</label>
+      <textarea id="quote" name="quote" rows="3" required></textarea>
+    </div>
+
+    <button type="submit">新增台詞</button>
+  </form>
+
+  <!-- 顯示結果訊息 -->
+  <div id="result"></div>
+
+  <!-- 顯示所有台詞 -->
+  <h2>所有電影台詞</h2>
+  <table id="quotesTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>台詞提供者</th>
+        <th>電影名稱</th>
+        <th>電影台詞</th>
+      </tr>
+    </thead>
+    <tbody id="quotesTableBody">
+    </tbody>
+  </table>
+
+  <script>
+    // 載入所有台詞數據
+    async function loadQuotes() {
+      try {
+        const response = await fetch('/api/quotes');
+        const quotes = await response.json();
+
+        const tableBody = document.getElementById('quotesTableBody');
+        tableBody.innerHTML = '';
+
+        quotes.forEach(quote => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${quote.id || ''}</td>
+            <td>${quote.provider}</td>
+            <td>${quote.movie_name}</td>
+            <td>${quote.quote}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('載入台詞失敗:', error);
+      }
+    }
+
+    // 提交表單
+    async function submitForm(event) {
+      event.preventDefault();
+
+      const form = document.getElementById('quoteForm');
+      const formData = new FormData(form);
+
+      const data = {
+        provider: formData.get('provider'),
+        movie_name: formData.get('movie_name'),
+        quote: formData.get('quote')
+      };
+
+      try {
+        const response = await fetch('/api/insert', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.text(); // 獲取純文字回應
+
+        // 顯示結果訊息
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `<p class="message">${result}</p>`;
+
+        // 如果成功，清空表單並重新載入台詞
+        if (response.ok) {
+          form.reset();
+          await loadQuotes();
+        }
+
+      } catch (error) {
+        console.error('提交失敗:', error);
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `<p class="message" style="background-color: #f8d7da; border-color: #f5c6cb; color: #721c24;">提交失敗: ${error.message}</p>`;
+      }
+    }
+
+    // 頁面載入時初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      loadQuotes();
+      document.getElementById('quoteForm').addEventListener('submit', submitForm);
+    });
+  </script>
+</body>
+</html>
